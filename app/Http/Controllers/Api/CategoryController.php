@@ -7,7 +7,6 @@ use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
-
 class CategoryController extends Controller
 {
     public function index()
@@ -30,7 +29,7 @@ class CategoryController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'slug' => 'required|string|max:255|unique:categories,slug',
+            'slug' => 'nullable|string|max:255|unique:categories,slug',
         ]);
 
         $slug = $validated['slug'] ?? Str::slug($validated['name']);
@@ -50,5 +49,38 @@ class CategoryController extends Controller
             'message' => 'Category created successfully',
             'data' => $category,
         ], 201);
+    }
+
+    public function update(Request $request, Category $category)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'slug' => 'nullable|string|max:255|unique:categories,slug,' . $category->id,
+        ]);
+
+        $slug = $validated['slug'] ?? Str::slug($validated['name']);
+        $base = $slug;
+        $i = 1;
+        while (Category::where('slug', $slug)->where('id', '!=', $category->id)->exists()) {
+            $slug = "{$base}-{$i}";
+            $i++;
+        }
+        $category->update([
+            'name' => $validated['name'],
+            'slug' => $slug,
+        ]);
+        return response()->json([
+            'message' => 'Category updated successfully',
+            'data' => $category,
+        ]);
+    }
+
+    public function destroy(Category $category)
+    {
+        $category->delete();
+
+        return response()->json([
+            'message' => 'Category deleted successfully',
+        ]);
     }
 }
